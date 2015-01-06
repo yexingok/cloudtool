@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import os.path
+import time
+import base64 
 import boto.ec2
 
 #Functions:
@@ -11,12 +13,19 @@ def bootstrip(instance):
 SCRIPT_NAME = os.path.basename(__file__)
 USER = 'yexing'
 
+#Bootstrip file: 
+BOOTSTRIP_FILE_NAME = './bootstrip.sh'
+BOOTSTRIP_FILE = open(BOOTSTRIP_FILE_NAME,'r')
+bootstrip_file_contents = BOOTSTRIP_FILE.read()
+BOOTSTRIP_FILE.close()
+
 #Define:
 #centos7 HVM:
 ami = 'ami-ce46d4f7'
 
 #Connect to region with profile 'cn'
-conn = boto.ec2.connect_to_region('cn-north-1',profile_name='cn',debug=2)
+conn = boto.ec2.connect_to_region('cn-north-1',profile_name='cn')
+#conn = boto.ec2.connect_to_region('cn-north-1',profile_name='cn',debug=2)
 
 #Define the network interface will be used inside VPC:
 network_interface_config = boto.ec2.networkinterface.NetworkInterfaceSpecification(
@@ -44,7 +53,7 @@ reservation = conn.run_instances(
                                 image_id             = ami,
                                 instance_type        = 't2.micro',
                                 instance_profile_arn = 'arn:aws-cn:iam::153162420102:instance-profile/DevDaily',
-                                user_data            = '',
+                                user_data            = base64.b64encode(bootstrip_file_contents),
                                 block_device_map     = block_device_map,
                                 network_interfaces   = network_interface,
                                 )
@@ -75,5 +84,6 @@ while instance.state == "pending":
 bootstrip(instance)
 
 #Output instances info:
-print "instance %s Ready! please login here: %s" % (instances.id, instances.public_dns_name)
+print "instance %s Ready! please login here:" % (instance.id)
+print instance.public_dns_name
 
