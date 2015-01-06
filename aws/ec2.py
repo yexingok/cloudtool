@@ -1,26 +1,46 @@
 #!/usr/bin/python
 
+import os
 import os.path
+import socket
 import time
 import base64 
 import boto.ec2
 
 #Functions:
 def bootstrip(instance):
-    print "Bootstrip instance:"
+    print "Bootstrip instance.."
+    time.sleep(1)
+
+#Function - Check port reachable
+def check_port(public_dns_name, port=22):
+    print "Check Server %s Port %i .." % (public_dns_name, port)
+    try_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        result = try_socket.connect((public_dns_name, port))
+        print "Port %i reachable now!" % (port)
+        try_socket.close()
+        return 0 
+    except socket.error as e:
+        print "Error on connect: %s" % e
+        try_socket.close()
+        return 1
+    
+
+#Functions end
 
 #Some Common Vars:
 SCRIPT_NAME = os.path.basename(__file__)
-USER = 'yexing'
-
-#Bootstrip file: 
+USER = os.environ['USER']
 BOOTSTRIP_FILE_NAME = './bootstrip.sh'
+
+#Read Bootstrip File: 
 BOOTSTRIP_FILE = open(BOOTSTRIP_FILE_NAME,'r')
 bootstrip_file_contents = BOOTSTRIP_FILE.read()
 BOOTSTRIP_FILE.close()
 
 #Define:
-#centos7 HVM:
+#AWS China HVM: Amazon Linux AMI release 2014.09
 ami = 'ami-ce46d4f7'
 
 #Connect to region with profile 'cn'
@@ -79,6 +99,13 @@ while instance.state == "pending":
     print "Instance %s statue is %s, waiting instances state to become running.." % (instance.id, instance.state)
     time.sleep(5)
     instance.update()
+
+#Check SSH Connection:
+result = check_port(instance.public_dns_name, 22)
+while result == 1:
+    print "Checking If SSH ready for use.."
+    time.sleep(5)
+    result = check_port(instance.public_dns_name, 22)
 
 #Bootstrip:
 bootstrip(instance)
