@@ -13,9 +13,11 @@ def bootstrip(instance):
     time.sleep(1)
 
 #Function - Check port reachable
-def check_port(public_dns_name, port=22):
-    print "Check Server %s Port %i .." % (public_dns_name, port)
+def check_port(public_dns_name, port=22, timeout=5):
+    print "Check Server %s Port %i .. (Timeout is %i seconds)" % (public_dns_name, port, timeout)
     try_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #Setup timtout to x seconds before we make the connection:
+    try_socket.settimeout(timeout)
     try:
         result = try_socket.connect((public_dns_name, port))
         print "Port %i reachable now!" % (port)
