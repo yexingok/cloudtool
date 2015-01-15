@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+#Todo:
+# Auto add/remove cloudwatch
+# Auto config dynamic dns using aws global route53 ttl to 60 seconds 
+
 import os
 import os.path
 import socket
@@ -105,7 +109,6 @@ while instance.state == "pending":
 #Check SSH Connection:
 result = check_port(instance.public_dns_name, 22)
 while result == 1:
-    print "Checking If SSH ready for use.."
     time.sleep(5)
     result = check_port(instance.public_dns_name, 22)
 
