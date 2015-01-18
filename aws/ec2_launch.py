@@ -39,6 +39,7 @@ def check_port(public_dns_name, port=22, timeout=5):
 def main():
     parser = argparse.ArgumentParser(description='Edanz AWS CLI Tool - Launch Base AMI or your own specifiy AMI')
     parser.add_argument('-a', '--ami', required=True, help='The AMI you want to launched')
+    parser.add_argument('-t', '--type', default='t2.micro', help='The instance type to launch (Default: %(default)s)')
     parser.add_argument('-f', '--file', type=argparse.FileType('r'), help='The file to provide user-data')
     parser.add_argument('-v', '--version', default=0.1, action='version', version='%(prog)s 0.1')
     parser.add_argument('--debug', type=int, default=0, choices=[0,1], help='--debug 1 enable debug mode')
@@ -61,9 +62,8 @@ def main():
         conn = boto.ec2.connect_to_region('cn-north-1',profile_name='cn',debug=2)
 
     #Defined Tags:
-    #TODO: using config file?
     common_tags= {
-            'Name': "DailyDev Resource Launch by " + USER ,
+            'Name': "DailyDev Resource Launch by " + USER + ' | ' + time_display ,
             'application': 'sandbox',
             'environment': 'dev',
             'role': 'dev-coding',
@@ -89,14 +89,13 @@ def main():
     network_interface = boto.ec2.networkinterface.NetworkInterfaceCollection(network_interface_config)
 
     #Define the block device:
+    #TODO: support more disks?
     dev_sda1 = boto.ec2.blockdevicemapping.BlockDeviceType()
     dev_sda1.size = 20 
     dev_sda1.delete_on_termination = True
-    #Add tag for block device:(not working)
-    #dev_sda1.add_tags(common_tags)
+    dev_sda1.volume_type = 'gp2'
 
     block_device_map = boto.ec2.blockdevicemapping.BlockDeviceMapping()
-    
     block_device_map['/dev/xvda'] = dev_sda1
 
     #Launch instances into VPC:
@@ -104,7 +103,7 @@ def main():
                                     max_count            = 1,
                                     key_name             = 'AWS_CN_General',
                                     image_id             = args.ami,
-                                    instance_type        = 't2.micro',
+                                    instance_type        = args.type,
                                     instance_profile_arn = 'arn:aws-cn:iam::153162420102:instance-profile/DevDaily',
                                     user_data            = base64.b64encode(bootstrip_file_contents),
                                     block_device_map     = block_device_map,
@@ -132,6 +131,20 @@ def main():
     while result == 1:
         time.sleep(5)
         result = check_port(instance.public_dns_name, 22)
+
+    #These tags need to add after instance ready:
+
+    #Add Tag for networkinterface:
+    network_interface = instance.interfaces[0]
+    network_interface.add_tags(common_tags)
+
+    #Add Tag for Block Device:
+    volume_special_tags = {
+            'mount-host':instance.id,
+    }
+    volume_id = instance.block_device_mapping['/dev/xvda'].volume_id
+    conn.create_tags(volume_id,common_tags)
+    conn.create_tags(volume_id,volume_special_tags)
 
     #Bootstrip:
     bootstrip(instance)
