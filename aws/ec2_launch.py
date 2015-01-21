@@ -49,8 +49,11 @@ def main():
     USER = os.environ['USER']
 
     #Read user-data File: 
-    bootstrip_file_contents = args.file.read()
-    args.file.close()
+    if args.file != None:
+        bootstrip_file_contents = args.file.read()
+        args.file.close()
+    else:
+        bootstrip_file_contents = ''
 
     #Get time:
     time_display = time.strftime('%Y-%m-%d %H:%M:%S')
