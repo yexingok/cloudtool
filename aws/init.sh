@@ -63,14 +63,25 @@ init_env ()
 
 init_profile ()
 {
-cat >> ${HOME}/.aws/credentials <<EOF
+    [ ! -d ${HOME}/.aws ] && mkdir ${HOME}/.aws
+    [ ! -f ${HOME}/.aws/credentials ] && touch ${HOME}/.aws/credentials
+    grep -qs "\[${profile}\]" ${HOME}/.aws/credentials
+    if [ $? -ne 0 ]; then
+        cat >> ${HOME}/.aws/credentials <<EOF
 [${profile}]
 aws_access_key_id = ${access_key}
 aws_secret_access_key = ${secret_key}
 
 EOF
-echo "Profile ${profile} was added to ${HOME}/.aws/credentials"
-
+        echo "Profile ${profile} was added to ${HOME}/.aws/credentials"
+    else
+        echo "Profile ${profile} already exist in ${HOME}/.aws/credentials, will overwrite it"
+        range_str="/\[${profile}\]/,/\[.\+\]/"
+        replace_access_key_str="s#aws_access_key_id\s*=\s*.*#aws_access_key_id = ${access_key}#g"
+        replace_secret_key_str="s#aws_secret_access_key\s*=\s*.*#aws_secret_access_key = ${secret_key}#g"
+        sed -i "${range_str}${replace_access_key_str}; ${range_str}${replace_secret_key_str}" ${HOME}/.aws/credentials
+    fi
+    
 }	# ----------  end of function init_profile  ----------
 
 
@@ -88,16 +99,6 @@ check_args ()
            exit 1
            ;;
    esac
-
-   # Check required files
-   [ ! -d ${HOME}/.aws ] && mkdir ${HOME}/.aws
-   [ ! -f ${HOME}/.aws/credentials ] && touch ${HOME}/.aws/credentials
-   # Check if profile already exist
-   grep -qs "\[${profile}\]" ${HOME}/.aws/credentials
-   if [ $? -eq 0 ]; then
-        echo "Error: Profile ${profile} already exist in ${HOME}/.aws/credentials. exiting..."
-        exit 1
-    fi
 
    if [ "$2" != "" ]; then
        access_key=$2
