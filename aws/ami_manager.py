@@ -15,7 +15,7 @@ def list_user_amis(ec2_connection, user):
     for image in images:
         try:
             if image.tags.get('owner') == user:
-                print 'ID: %s\tName:"%s"\tOwner:%s\tCreated:%s' % (image.id, image.name, image.tags.get('owner'), image.tags.get('createtime'))
+                print '%s  Status:%s  Owner:%s  Created:%s  Name:"%s"' % (image.id, image.state, image.tags.get('owner'), image.tags.get('createtime'), image.tags.get('Name'))
         except Exception as e:
             print '%s' % (e.message)
 
@@ -24,8 +24,11 @@ def delete_amis(ec2_connection, image_ids):
     for image_id in image_ids:
         try:
             image = ec2_connection.get_image(image_id)
-            print 'Deleting AMI: %s\t Name: "%s"\t Owner: %s\t' % (image.id, image.name, image.tags.get('owner'))
-            image.deregister(dry_run=True)
+            if image != None:
+                print 'Deleting AMI: %s  Owner: %s  Name: "%s"' % (image.id, image.tags.get('owner'), image.tags.get('Name'))
+                image.deregister(delete_snapshot=True,dry_run=False)
+            else:
+                print "No such ami '%s', it might already deleted" % image_id
         except Exception as e:
             print '%s' % (e.message)
 

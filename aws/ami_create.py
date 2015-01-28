@@ -38,7 +38,7 @@ def main():
     #Get time:
     current_time = time.localtime()
     time_display = time.strftime('%Y-%m-%d %H:%M:%S',current_time)
-    time_short_display = time.strftime('%Y%m%d-%H%M%S',current_time)
+    time_short_display = time.strftime('%Y-%m-%d %H.%M.%S',current_time)
 
     # Rebbot instance or not
     if args.reboot :
@@ -51,7 +51,7 @@ def main():
         tag_name = args.name
     else:
         instance_name = instance.tags['Name'] if 'Name' in instance.tags else instance.id
-        tag_name = 'snapshot for ' + instance_name + " at " + time_display
+        tag_name = "snapshot for '%s' at %s" % (instance_name, time_display)
 
     #Defined Tags:
     common_tags= {
@@ -68,7 +68,6 @@ def main():
     common_tags['application'] = instance.tags['application'] if 'application' in instance.tags else 'sandbox'
     common_tags['environment'] = instance.tags['environment'] if 'environment' in instance.tags else 'dev'
     common_tags['role'] = instance.tags['role'] if 'role' in instance.tags else 'dev-coding'
-    common_tags['owner'] = instance.tags['owner'] if 'owner' in instance.tags else USER
 
     # AMI Name
     ami_name = "snapshot for " + instance.id + " at " + time_short_display
@@ -79,10 +78,11 @@ def main():
     try:
         image_id = instance.create_image(ami_name,no_reboot=noreboot,dry_run=False)
         time.sleep(2)
-        print "Taging AMI " + image_id
+        print 'Taging AMI %s with name: "%s"' % (image_id,tag_name)
         image = conn.get_image(image_id)
         image.add_tags(common_tags)
         print "AMI was created, it might take serveral minutes to finish"
+        print "You can check the status by running: ./ami_manager.py -l"
     except Exception as e:
         print e.message
 
