@@ -66,7 +66,7 @@ def main():
 
     #Defined Tags:
     common_tags= {
-            'Name': "DailyDev Resource Launch by " + USER + ' | ' + time_display ,
+            'Name': "DailyDev Resource Launch by " + USER,
             'application': 'sandbox',
             'environment': 'dev',
             'role': 'dev-coding',
