@@ -91,15 +91,24 @@ def main():
             )
     network_interface = boto.ec2.networkinterface.NetworkInterfaceCollection(network_interface_config)
 
+    # Get ami info
+    try:
+        image = conn.get_image(args.ami)
+    except Exception as e:
+        print e.message
+    if image == None:
+        print "Can not find specified AMI. Exiting..."
+        exit()
+
     #Define the block device:
     #TODO: support more disks?
     dev_sda1 = boto.ec2.blockdevicemapping.BlockDeviceType()
-    dev_sda1.size = 20 
+    dev_sda1.size = image.block_device_mapping[image.root_device_name].size 
     dev_sda1.delete_on_termination = True
-    dev_sda1.volume_type = 'gp2'
+    dev_sda1.volume_type = image.block_device_mapping[image.root_device_name].volume_type 
 
     block_device_map = boto.ec2.blockdevicemapping.BlockDeviceMapping()
-    block_device_map['/dev/xvda'] = dev_sda1
+    block_device_map[image.root_device_name] = dev_sda1
 
     #Launch instances into VPC:
     reservation = conn.run_instances(
@@ -145,7 +154,7 @@ def main():
     volume_special_tags = {
             'mount-host':instance.id,
     }
-    volume_id = instance.block_device_mapping['/dev/xvda'].volume_id
+    volume_id = instance.block_device_mapping[image.root_device_name].volume_id
     conn.create_tags(volume_id,common_tags)
     conn.create_tags(volume_id,volume_special_tags)
 
